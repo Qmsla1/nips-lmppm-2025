@@ -274,15 +274,22 @@ def reconstruction_with_iterations(images, model, dnet, device, method, train_lo
 
     beta_vec = np.arange(1, n_iters + 1, 1) / n_iters
 
-    for ii in range(n_iters):
-        if d_thresh is not None and d_val > d_thresh:
+    ii = 0
+    switched = False
+    while ii < n_iters:
+        if d_thresh is not None and d_val > d_thresh and not switched:
             delta = z_batch - z_shift
         else:
+            if d_thresh is not None and not switched:
+                switched = True
+                ii = 0
+                beta_vec = np.arange(1, n_iters + 1, 1) / n_iters
+                fuse_lambda = eval_cfg['fuse_lambda'] / 5
             delta = fuse_lambda * (z_batch - z_shift) + (1 - fuse_lambda) * (z_batch - z_bar)
+            fuse_lambda = min(1, fuse_lambda + delta_fuse)
 
         z_batch = z_batch - beta_vec[ii] * delta
         z_bar, z_shift, d_val = update_z(z_batch, dnet, z_clean, sigma, device)
-        fuse_lambda = min(1, fuse_lambda + delta_fuse)
 
         if skip_features is not None:
             output_tmp = model.decoder(z_batch, skip_features)
@@ -291,12 +298,12 @@ def reconstruction_with_iterations(images, model, dnet, device, method, train_lo
 
         output_tmp = torch.clamp(output_tmp, min=0.0, max=1.0)
 
-        # Save iteration result if requested
         if save_iterations:
             iteration_results.append(output_tmp.clone())
 
         latents = model.encoder(output_tmp)
         skip_features = latents[1] if isinstance(latents, tuple) else None
+        ii += 1
 
     with torch.no_grad():
         if skip_features is not None:
