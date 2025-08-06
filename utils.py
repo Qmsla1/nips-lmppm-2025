@@ -160,10 +160,10 @@ def calc_z_components(images, model, dnet, device, method, train_loader, **kwarg
     #z_batch = model.encoder(images)
 
    
-    z_bar,z_shift = update_z(z_batch, dnet, z_clean, sigma, device)
+    z_bar, z_shift, d_val = update_z(z_batch, dnet, z_clean, sigma, device)
 
-    
-    return z_batch, z_bar, z_shift
+
+    return z_batch, z_bar, z_shift, d_val
 
 
 def update_z(z_batch, dnet, z_clean, sigma, device):
@@ -200,7 +200,9 @@ def update_z(z_batch, dnet, z_clean, sigma, device):
 
     z_shift = z_batch - torch.abs(d) * normalized_grad
 
-    return z_bar, z_shift
+    d_val = torch.mean(torch.abs(d)).item()
+
+    return z_bar, z_shift, d_val
 
 def dae_reconstruction(images, model, device):
     with torch.no_grad():
@@ -234,8 +236,9 @@ def reconstruction_with_iterations(images, model, dnet, device, method, train_lo
     delta_fuse = eval_cfg['delta_fuse'] / 5
 
     sigma = eval_cfg['sigma']
+    d_thresh = eval_cfg.get('d_thresh', None)
 
-    z_batch, z_bar, z_shift = calc_z_components(images, model, dnet, device, method, train_loader, **kwargs)
+    z_batch, z_bar, z_shift, d_val = calc_z_components(images, model, dnet, device, method, train_loader, **kwargs)
 
     if method == 'L2':
         with torch.no_grad():
@@ -272,11 +275,13 @@ def reconstruction_with_iterations(images, model, dnet, device, method, train_lo
     beta_vec = np.arange(1, n_iters + 1, 1) / n_iters
 
     for ii in range(n_iters):
-        delta = fuse_lambda * (z_batch - z_shift) + (1 - fuse_lambda) * (z_batch - z_bar)
-
+        if d_thresh is not None and d_val > d_thresh:
+            delta = z_batch - z_shift
+        else:
+            delta = fuse_lambda * (z_batch - z_shift) + (1 - fuse_lambda) * (z_batch - z_bar)
 
         z_batch = z_batch - beta_vec[ii] * delta
-        z_bar, z_shift = update_z(z_batch, dnet, z_clean, sigma, device)
+        z_bar, z_shift, d_val = update_z(z_batch, dnet, z_clean, sigma, device)
         fuse_lambda = min(1, fuse_lambda + delta_fuse)
 
         if skip_features is not None:
@@ -752,7 +757,8 @@ def reconstruction(images, model, dnet, device, method, train_loader, **kwargs):
    
     delta_fuse=eval_cfg['delta_fuse']
     sigma=eval_cfg['sigma']
-    z_batch, z_bar, z_shift = calc_z_components(images, model, dnet, device, method, train_loader, **kwargs)
+    d_thresh = eval_cfg.get('d_thresh', None)
+    z_batch, z_bar, z_shift, d_val = calc_z_components(images, model, dnet, device, method, train_loader, **kwargs)
     
     if method == 'L2':
         with torch.no_grad():
@@ -774,11 +780,14 @@ def reconstruction(images, model, dnet, device, method, train_loader, **kwargs):
     
     beta_vec = np.arange(1,n_iters+1,1)/n_iters
     for ii in range(n_iters):
-       
-        delta = fuse_lambda * (z_batch-z_shift) + (1 - fuse_lambda) * (z_batch-z_bar)
-        z_batch = z_batch-beta_vec[ii]*delta
-        z_bar,z_shift = update_z(z_batch, dnet, z_clean, sigma, device)
-        fuse_lambda = min(1,fuse_lambda+delta_fuse)
+
+        if d_thresh is not None and d_val > d_thresh:
+            delta = z_batch - z_shift
+        else:
+            delta = fuse_lambda * (z_batch - z_shift) + (1 - fuse_lambda) * (z_batch - z_bar)
+        z_batch = z_batch - beta_vec[ii] * delta
+        z_bar, z_shift, d_val = update_z(z_batch, dnet, z_clean, sigma, device)
+        fuse_lambda = min(1, fuse_lambda + delta_fuse)
         # output_tmp=model.decoder(z_batch,skip_features)
 
         if skip_features is not None:

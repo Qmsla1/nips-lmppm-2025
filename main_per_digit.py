@@ -374,6 +374,7 @@ if __name__ == "__main__":
     eval_cfg['fuse_lambda'] = 0.65
     eval_cfg['delta_fuse'] = (0.9 - eval_cfg['fuse_lambda']) / eval_cfg['n_iters']
     eval_cfg['sigma'] = 1
+    eval_cfg['d_thresh'] = 0.5
     eval_cfg['noise_factor'] = NOISE_INTER
     eval_cfg['elastic_alpha'] = 34.0
     eval_cfg['elastic_sigma'] = EL_INTER
