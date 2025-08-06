@@ -204,7 +204,11 @@ def generate_images_from_noise(digit_list, model_AE_list, model_dnet_list, train
         samples_generated = 0
 
         while samples_generated < num_samples_per_digit:
-            batch_size = min(64, target_samples - samples_generated)  # Smaller batches
+            # Generate images in manageable batches until we reach the requested
+            # number of samples for this digit. ``num_samples_per_digit`` controls
+            # how many images we want in total and we subtract the amount already
+            # produced to avoid overshooting the target.
+            batch_size = min(64, num_samples_per_digit - samples_generated)
 
             # Generate pure Gaussian noise
             gaussian_noise = torch.randn(batch_size, 1, 28, 28, device=device) * 0.5 + 0.5
@@ -286,6 +290,9 @@ def evaluate_fid_per_digit(digit_list, model_AE_list, model_dnet_list, train_loa
 
         generated_images = torch.cat(generated_images)[:target_samples]
 
+        # Save a small sample of real vs. generated images for quick visual
+        # inspection. This does **not** limit the number of images used for the
+        # FID computation, which relies on the full ``target_samples`` set above.
         debug_path = save_debug_images(real_images[:4], generated_images[:4], digit)
         print(f"Saved debug images to: {debug_path}")
 
