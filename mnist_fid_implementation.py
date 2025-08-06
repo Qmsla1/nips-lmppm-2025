@@ -165,7 +165,7 @@ def compute_fid_from_images(real_images, fake_images, model, device):
 
 
 def save_debug_images(real_images, generated_images, digit):
-    count = min(4, len(real_images))
+    count = min(8, len(real_images))
     fig, axes = plt.subplots(2, count, figsize=(2 * count, 4))
     for i in range(count):
         axes[0, i].imshow(real_images[i].cpu().squeeze(), cmap='gray')
@@ -293,7 +293,7 @@ def evaluate_fid_per_digit(digit_list, model_AE_list, model_dnet_list, train_loa
         # Save a small sample of real vs. generated images for quick visual
         # inspection. This does **not** limit the number of images used for the
         # FID computation, which relies on the full ``target_samples`` set above.
-        debug_path = save_debug_images(real_images[:4], generated_images[:4], digit)
+        debug_path = save_debug_images(real_images[:14], generated_images[:14], digit)
         print(f"Saved debug images to: {debug_path}")
 
         # Compute FID and additional stats for this digit

@@ -419,8 +419,11 @@ if __name__ == "__main__":
     test_images, _ = next(iter(train_loader_list[2]))
     test_images = test_images.to(device)
 
+    n_images = min(25, len(test_images))
+
+
     # Generate pure noise sampled uniformly across the hypercube and projected to sphere
-    pure_noise = torch.rand_like(test_images[:4]) * 2 - 1  # uniform in [-1,1]
+    pure_noise = torch.rand_like(test_images[:n_images]) * 2 - 1  # uniform in [-1,1]
     # Normalize to unit sphere
     norms = pure_noise.view(pure_noise.size(0), -1).norm(dim=1, keepdim=True).view(-1, 1, 1, 1)
     pure_noise = pure_noise / norms
@@ -434,10 +437,9 @@ if __name__ == "__main__":
         'dist', train_loader_list[2],
         save_iterations=False, eval_cfg=eval_cfg
     )
-
     # Save comparison
-    fig, axes = plt.subplots(2, 4, figsize=(12, 6))
-    for i in range(4):
+    fig, axes = plt.subplots(2, n_images, figsize=(12, 6))
+    for i in range(n_images):
         axes[0, i].imshow(pure_noise[i].cpu().squeeze(), cmap='gray')
         axes[0, i].set_title(f'Noise {i}')
         axes[0, i].axis('off')
@@ -448,7 +450,7 @@ if __name__ == "__main__":
 
     plt.suptitle('FID Debug: Noise to Digit 2 Reconstruction')
     plt.tight_layout()
-    plt.savefig('fid_debug_reconstruction.png', dpi=150, bbox_inches='tight')
+    plt.savefig('fid_debug_reconstruction.png', dpi=350, bbox_inches='tight')
     plt.close()
 
     print("Saved debug images to: fid_debug_reconstruction.png")
