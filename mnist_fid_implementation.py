@@ -5,6 +5,7 @@ import numpy as np
 from scipy import linalg
 from torch.utils.data import DataLoader, TensorDataset
 import os
+import matplotlib.pyplot as plt
 from utils import generate_gaussian_noise_images, to_np, reconstruction
 
 
@@ -142,7 +143,9 @@ def compute_fid_from_loaders(real_loader, fake_loader, model, device):
     sigma2 = np.cov(fake_features, rowvar=False)
 
     fid_value = calculate_fid(mu1, sigma1, mu2, sigma2)
-    return fid_value
+    mean_diff = mu2 - mu1
+    eigvals = np.linalg.eigvalsh(sigma2)
+    return fid_value, mean_diff, eigvals
 
 
 def compute_fid_from_images(real_images, fake_images, model, device):
@@ -156,7 +159,24 @@ def compute_fid_from_images(real_images, fake_images, model, device):
     sigma2 = np.cov(fake_features, rowvar=False)
 
     fid_value = calculate_fid(mu1, sigma1, mu2, sigma2)
-    return fid_value
+    mean_diff = mu2 - mu1
+    eigvals = np.linalg.eigvalsh(sigma2)
+    return fid_value, mean_diff, eigvals
+
+
+def save_debug_images(real_images, generated_images, digit):
+    count = min(4, len(real_images))
+    fig, axes = plt.subplots(2, count, figsize=(2 * count, 4))
+    for i in range(count):
+        axes[0, i].imshow(real_images[i].cpu().squeeze(), cmap='gray')
+        axes[0, i].axis('off')
+        axes[1, i].imshow(generated_images[i].cpu().squeeze(), cmap='gray')
+        axes[1, i].axis('off')
+    plt.tight_layout()
+    path = f'fid_debug_digit_{digit}.png'
+    plt.savefig(path, dpi=150)
+    plt.close()
+    return path
 
 
 # === STEP 4: Generate images from noise using your models ===
@@ -266,12 +286,17 @@ def evaluate_fid_per_digit(digit_list, model_AE_list, model_dnet_list, train_loa
 
         generated_images = torch.cat(generated_images)[:target_samples]
 
-        # Compute FID for this digit
-        fid_score = compute_fid_from_images(real_images, generated_images,
+        debug_path = save_debug_images(real_images[:4], generated_images[:4], digit)
+        print(f"Saved debug images to: {debug_path}")
+
+        # Compute FID and additional stats for this digit
+        fid_score, mean_diff, eigvals = compute_fid_from_images(real_images, generated_images,
                                             feature_extractor, device)
         fid_scores[digit] = fid_score
 
         print(f"FID score for digit {digit}: {fid_score:.2f}")
+        print(f"Mean feature difference (L2): {np.linalg.norm(mean_diff):.4f}")
+        print(f"Eigenvalues of generated covariance: {eigvals}")
 
     # Compute overall FID
     overall_fid = np.mean(list(fid_scores.values()))
@@ -315,7 +340,7 @@ def evaluate_fid_all_digits(digit_list, model_AE_list, model_dnet_list, train_lo
     real_labels = torch.tensor(real_labels)
 
     # Compute FID
-    fid_score = compute_fid_from_images(real_images, generated_images,
+    fid_score, _, _ = compute_fid_from_images(real_images, generated_images,
                                         feature_extractor, device)
 
     print(f"Overall FID score: {fid_score:.2f}")
