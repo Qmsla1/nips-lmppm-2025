@@ -128,7 +128,9 @@ def loss_dist_al(noisy_data, clean_data, model, epoch, lam_vec, **kwargs):
     lam5= kwargs.get('lam5', 1)
     lam6= kwargs.get('lam6', 1.0)
     lam7= kwargs.get('lam7', 1.0)
-    eps = kwargs.get('eps', 1e-10) 
+    lam8= kwargs.get('lam8', 1.0)
+    n_points = kwargs.get('n', 5)
+    eps = kwargs.get('eps', 1e-10)
    
 
     lam3 = lam_vec
@@ -204,12 +206,29 @@ def loss_dist_al(noisy_data, clean_data, model, epoch, lam_vec, **kwargs):
     else:
         G_z_shift = model.decoder(z_shift)
     #loss7 = torch.mean(torch.abs((clean_data) - G_z_shift)) 
-    loss7 = torch.mean(torch.abs((x_star) - G_z_shift)) 
+    loss7 = torch.mean(torch.abs((x_star) - G_z_shift))
 
-    loss = lam1*loss1 + lam2*loss2 + lam3*loss3 + lam4*loss4 +lam5*loss5 + \
-           lam6*loss6+ lam7*loss7 
-    
-    loss_vector = [loss1.item(),loss2.item(),loss3.item(),loss4.item(),loss5.item(),loss6.item(),loss7.item()]
+    # Sample additional points outside the manifold and compute pairwise distances
+    loss8 = torch.tensor(0.0, device=noisy_data.device)
+    if n_points > 1:
+        z_interp = []
+        for idx in range(1, n_points + 1):
+            alpha = idx / 10.0
+            x_in = (1 - alpha) * x_notin_M + alpha * x_star
+            lat = model.encoder(x_in)
+            z_in = lat[0] if isinstance(lat, tuple) else lat
+            z_interp.append(z_in)
+        z_interp = torch.stack(z_interp, dim=1)  # [batch, n_points, latent_dim]
+        diffs = z_interp.unsqueeze(1) - z_interp.unsqueeze(2)
+        sq_dists = torch.sum(diffs**2, dim=-1)
+        iu = torch.triu_indices(n_points, n_points, offset=1)
+        loss8 = torch.mean(sq_dists[:, iu[0], iu[1]])
+
+    loss = (lam1*loss1 + lam2*loss2 + lam3*loss3 + lam4*loss4 + lam5*loss5 +
+            lam6*loss6 + lam7*loss7 + lam8*loss8)
+
+    loss_vector = [loss1.item(), loss2.item(), loss3.item(), loss4.item(),
+                   loss5.item(), loss6.item(), loss7.item(), loss8.item()]
 
     return loss,loss_vector
 
