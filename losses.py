@@ -210,10 +210,11 @@ def loss_dist_al(noisy_data, clean_data, model, epoch, lam_vec, **kwargs):
 
     # Sample additional points outside the manifold and compute pairwise distances
     loss8 = torch.tensor(0.0, device=noisy_data.device)
+    # print("new loss8")
     if n_points > 1:
         z_interp = []
         for idx in range(1, n_points + 1):
-            alpha = idx / 10.0
+            alpha = idx / n_points
             x_in = (1 - alpha) * x_notin_M + alpha * x_star
             lat = model.encoder(x_in)
             z_in = lat[0] if isinstance(lat, tuple) else lat

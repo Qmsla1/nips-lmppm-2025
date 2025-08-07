@@ -303,13 +303,13 @@ def qualitative_results(digit_list, test_loader_list, model_AE_list, model_dnet_
 
 if __name__ == "__main__":
     digit_list = [2]
-    retrain = False
+    retrain = True
     retrain_diffusion = False
     lam3 = 0
     lam6 = 1
     lam7 = 1
     latent = 15
-    per_digit = False
+    # per_digit = False
 
     train_cfg = {}
     eval_cfg = {}
