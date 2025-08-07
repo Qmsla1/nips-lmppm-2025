@@ -224,6 +224,76 @@ def ldm_reconstruction(images, dae_model, diffusion_model, device, **kwargs):
         )
     return denoised_reconstruction
 
+def print_z(z_clean, z_batch, kwargs):
+    z_clean_np = to_np(z_clean)
+    z_clean_distances = []
+    for i in range(z_clean_np.shape[0]):
+        for j in range(i + 1, z_clean_np.shape[0]):
+            dist = np.linalg.norm(z_clean_np[i] - z_clean_np[j])
+            z_clean_distances.append(dist)
+    mean_z_clean_distance = np.mean(z_clean_distances)
+    std_z_clean_distance = np.std(z_clean_distances)
+    print(f"Mean distance between z_clean pairs: {mean_z_clean_distance:.4f}")
+    print(f"Std distance between z_clean pairs: {std_z_clean_distance:.4f}")
+
+    # Calculate mean distance between all z_batch pairs
+    z_batch_np = to_np(z_batch)
+    z_batch_distances = []
+    for i in range(z_batch_np.shape[0]):
+        for j in range(i + 1, z_batch_np.shape[0]):
+            dist = np.linalg.norm(z_batch_np[i] - z_batch_np[j])
+            z_batch_distances.append(dist)
+    mean_z_batch_distance = np.mean(z_batch_distances)
+    std_z_batch_distance = np.std(z_batch_distances)
+    print(f"Mean distance between z_batch pairs: {mean_z_batch_distance:.4f}")
+    print(f"Std distance between z_batch pairs: {std_z_batch_distance:.4f}")
+
+    # Create t-SNE visualization of z_clean vs z_batch
+    try:
+        from sklearn.manifold import TSNE
+        import matplotlib.pyplot as plt
+
+        # Combine z_clean and z_batch for t-SNE
+        z_combined = np.vstack([z_clean_np, z_batch_np])
+
+        # Create labels for the two groups
+        labels = ['z_clean'] * len(z_clean_np) + ['z_batch'] * len(z_batch_np)
+
+        # Apply t-SNE
+        tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, len(z_combined) - 1))
+        z_tsne = tsne.fit_transform(z_combined)
+
+        # Create the plot
+        plt.figure(figsize=(10, 8))
+
+        # Plot z_clean points
+        z_clean_tsne = z_tsne[:len(z_clean_np)]
+        plt.scatter(z_clean_tsne[:, 0], z_clean_tsne[:, 1],
+                    c='blue', label='z_clean', alpha=0.7, s=50)
+
+        # Plot z_batch points
+        z_batch_tsne = z_tsne[len(z_clean_np):]
+        plt.scatter(z_batch_tsne[:, 0], z_batch_tsne[:, 1],
+                    c='red', label='z_batch', alpha=0.7, s=50)
+
+        plt.title('t-SNE Visualization: z_clean vs z_batch')
+        plt.xlabel('t-SNE Component 1')
+        plt.ylabel('t-SNE Component 2')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+
+        # Save the plot if file_path is available in kwargs
+        if 'file_path' in kwargs:
+            tsne_path = kwargs['file_path'] + '_tsne_z_clean_vs_z_batch.png'
+            plt.savefig(tsne_path, dpi=300, bbox_inches='tight')
+            print(f"t-SNE plot saved to: {tsne_path}")
+
+        plt.show()
+
+    except ImportError:
+        print("sklearn not available, skipping t-SNE visualization")
+    except Exception as e:
+        print(f"Error in t-SNE visualization: {e}")
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXX
 def reconstruction_with_iterations(images, model, dnet, device, method, train_loader, save_iterations=False, **kwargs):
     """
@@ -252,7 +322,7 @@ def reconstruction_with_iterations(images, model, dnet, device, method, train_lo
 
     latents_clean = model.encoder(train_images)
     z_clean = latents_clean[0] if isinstance(latents_clean, tuple) else latents_clean
-
+    print_z(z_clean, z_batch, kwargs)
     latents = model.encoder(images)
     skip_features = latents[1] if isinstance(latents_clean, tuple) else None
 

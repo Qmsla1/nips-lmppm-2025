@@ -303,7 +303,7 @@ def qualitative_results(digit_list, test_loader_list, model_AE_list, model_dnet_
 
 if __name__ == "__main__":
     digit_list = [2]
-    retrain = True
+    retrain = False
     retrain_diffusion = False
     lam3 = 0
     lam6 = 1
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     eval_cfg['fuse_lambda'] = 0.65
     eval_cfg['delta_fuse'] = (0.9 - eval_cfg['fuse_lambda']) / eval_cfg['n_iters']
     eval_cfg['sigma'] = 1
-    eval_cfg['d_thresh'] = 0.0007
+    eval_cfg['d_thresh'] = None
     eval_cfg['noise_factor'] = NOISE_INTER
     eval_cfg['elastic_alpha'] = 34.0
     eval_cfg['elastic_sigma'] = EL_INTER
@@ -419,9 +419,10 @@ if __name__ == "__main__":
     test_images, _ = next(iter(train_loader_list[2]))
     test_images = test_images.to(device)
 
-    n_images = min(5, len(test_images))
-
-
+    n_images = min(100, len(test_images))
+    # seed = 42
+    # torch.manual_seed(seed)
+    # np.random.seed(seed)
     # Generate pure noise sampled uniformly across the hypercube and projected to sphere
     pure_noise = torch.rand_like(test_images[:n_images]) * 2 - 1  # uniform in [-1,1]
     # Normalize to unit sphere
