@@ -349,8 +349,8 @@ if __name__ == "__main__":
     train_cfg['lam3'] = lam3
     train_cfg['lam6'] = lam6
     train_cfg['lam7'] = lam7
-    train_cfg['min_noise'] = 0.4
-    train_cfg['max_noise'] = 0.4
+    train_cfg['min_noise'] = 0.8
+    train_cfg['max_noise'] = 0.8
     train_cfg['do_update'] = do_update
     train_cfg['lr_ae'] = 1e-3
     train_cfg['lr_dnet'] = 1e-5
@@ -384,6 +384,7 @@ if __name__ == "__main__":
     eval_cfg['num_images'] = 10
     eval_cfg['offset'] = 30
     eval_cfg['diffusion_steps'] = 150
+    eval_cfg['n_points'] = 20
 
     train_loader_list, test_loader_list, model_AE_list, \
         model_dnet_list, model_dae_list, model_diff_list, train_ds, test_ds = prepare_data(digit_list, train_cfg)

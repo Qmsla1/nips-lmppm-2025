@@ -129,7 +129,7 @@ def loss_dist_al(noisy_data, clean_data, model, epoch, lam_vec, **kwargs):
     lam6= kwargs.get('lam6', 1.0)
     lam7= kwargs.get('lam7', 1.0)
     lam8= kwargs.get('lam8', 1.0)
-    n_points = kwargs.get('n', 5)
+    n_points = kwargs.get('n_points', 15)
     eps = kwargs.get('eps', 1e-10)
    
 
